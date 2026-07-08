@@ -61,12 +61,12 @@ def default_output_path(input_path: Path, dst_fps: Fraction, scale: float) -> Pa
 def run_pipeline(input_path: Path, output_path: Path | None, opts: RunOptions) -> Path:
     if opts.sr_model not in SR_MODELS:
         raise ValueError(
-            f"未知の超解像モデルです: {opts.sr_model}（利用可能: {', '.join(SR_MODELS)}）"
+            f"unknown super-resolution model: {opts.sr_model} (available: {', '.join(SR_MODELS)})"
         )
     native = SR_MODELS[opts.sr_model].scale
     if not 1.0 < opts.scale <= native:
         raise ValueError(
-            f"--scale は 1 より大きく {native} 以下で指定してください: {opts.scale:g}"
+            f"--scale must be greater than 1 and at most {native}: {opts.scale:g}"
         )
 
     info: VideoInfo = probe(input_path)
@@ -74,17 +74,17 @@ def run_pipeline(input_path: Path, output_path: Path | None, opts: RunOptions) -
     dst_fps = resolve_target_fps(src_fps, opts)
     if dst_fps <= src_fps:
         raise ValueError(
-            f"目標fps ({float(dst_fps):g}) が入力fps ({float(src_fps):g}) 以下です。"
+            f"target fps ({float(dst_fps):g}) is not greater than input fps ({float(src_fps):g})."
         )
     out = output_path or default_output_path(input_path, dst_fps, opts.scale)
     if out.resolve() == input_path.resolve():
-        raise ValueError("出力パスが入力と同じです。")
+        raise ValueError("output path is the same as the input.")
     out_w, out_h = output_dimensions(info, opts.scale)
 
     if info.is_vfr:
         console.print(
-            "[yellow]入力はVFR（可変フレームレート）です。"
-            f"平均 {float(src_fps):.3f}fps のCFRに変換してから処理します。[/yellow]"
+            "[yellow]Input is VFR (variable frame rate); "
+            f"converting to CFR at its average {float(src_fps):.3f}fps before processing.[/yellow]"
         )
     console.print(
         f"[bold]{input_path.name}[/bold] {info.width}x{info.height} "
@@ -129,8 +129,8 @@ def run_pipeline(input_path: Path, output_path: Path | None, opts: RunOptions) -
             progress.update(task, completed=stats.n_out)
 
     console.print(
-        f"[green]完了[/green] {out} — 入力 {stats.n_src} フレーム -> 出力 {stats.n_out} フレーム, "
+        f"[green]done[/green] {out} — {stats.n_src} input frames -> {stats.n_out} output frames, "
         f"{info.width}x{info.height} -> {out_w}x{out_h}"
-        + (f"（シーンカット検出 {stats.n_cuts} 箇所）" if stats.n_cuts else "")
+        + (f" ({stats.n_cuts} scene cuts detected)" if stats.n_cuts else "")
     )
     return out

@@ -59,7 +59,7 @@ class FfmpegProcess:
         stderr = self._stderr_tail()
         self._stderr_file.close()
         if code != 0:
-            raise RuntimeError(f"ffmpeg がエラー終了しました (code {code}):\n{stderr}")
+            raise RuntimeError(f"ffmpeg exited with an error (code {code}):\n{stderr}")
 
     def kill(self) -> None:
         if self.proc.poll() is None:
@@ -136,7 +136,7 @@ class FrameWriter(FfmpegProcess):
         height: int | None = None,
     ) -> None:
         if codec not in _CODEC_ARGS:
-            raise ValueError(f"未対応のコーデックです: {codec}")
+            raise ValueError(f"unsupported codec: {codec}")
         width = width or source.width
         height = height or source.height
         codec_args = list(_CODEC_ARGS[codec])

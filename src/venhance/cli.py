@@ -15,11 +15,11 @@ from .probe import FfmpegNotFoundError
 
 app = typer.Typer(
     name="venhance",
-    help="ローカルで動作するAI動画エンハンサー（フレーム補間・超解像）",
+    help="Local AI video enhancer (frame interpolation and super-resolution)",
     no_args_is_help=True,
     pretty_exceptions_show_locals=False,
 )
-models_app = typer.Typer(help="モデル重みの管理", no_args_is_help=True)
+models_app = typer.Typer(help="Manage model weights", no_args_is_help=True)
 app.add_typer(models_app, name="models")
 
 console = Console()
@@ -34,20 +34,20 @@ def _parse_rate(value: str, opt: str) -> Fraction:
         else:
             f = Fraction(value)
     except (ValueError, ZeroDivisionError):
-        raise typer.BadParameter(f"{opt} の値を解釈できません: {value}")
+        raise typer.BadParameter(f"cannot parse {opt} value: {value}")
     if f <= 0:
-        raise typer.BadParameter(f"{opt} は正の値で指定してください: {value}")
+        raise typer.BadParameter(f"{opt} must be positive: {value}")
     return f
 
 
 def _fail(e: Exception) -> None:
-    err_console.print(f"[red]エラー:[/red] {e}")
+    err_console.print(f"[red]error:[/red] {e}")
     raise typer.Exit(code=1)
 
 
 @app.callback(invoke_without_command=True)
 def _version_callback(
-    version: Annotated[bool, typer.Option("--version", help="バージョン表示")] = False,
+    version: Annotated[bool, typer.Option("--version", help="Show version")] = False,
 ) -> None:
     if version:
         console.print(f"venhance {__version__}")
@@ -56,9 +56,9 @@ def _version_callback(
 
 @app.command()
 def probe(
-    input: Annotated[Path, typer.Argument(help="入力動画", exists=True, dir_okay=False)],
+    input: Annotated[Path, typer.Argument(help="Input video", exists=True, dir_okay=False)],
 ) -> None:
-    """入力動画の情報（解像度・fps・コーデックなど）を表示する。"""
+    """Show input video info (resolution, fps, codec, etc.)."""
     from .probe import probe as do_probe
 
     try:
@@ -70,53 +70,53 @@ def probe(
     table.add_row("path", str(info.path))
     table.add_row("codec", f"{info.codec} ({info.pix_fmt})")
     table.add_row("resolution", f"{info.width}x{info.height}")
-    fps_note = " [yellow](VFR: 平均値)[/yellow]" if info.is_vfr else ""
+    fps_note = " [yellow](VFR: average)[/yellow]" if info.is_vfr else ""
     table.add_row("fps", f"{float(info.fps):.3f} ({info.fps}){fps_note}")
     table.add_row("duration", f"{info.duration:.2f}s" if info.duration else "?")
     table.add_row("frames", str(info.nb_frames) if info.nb_frames else "?")
-    table.add_row("audio", "あり" if info.has_audio else "なし")
+    table.add_row("audio", "yes" if info.has_audio else "no")
     console.print(table)
 
 
 @app.command()
 def interp(
-    input: Annotated[Path, typer.Argument(help="入力動画", exists=True, dir_okay=False)],
+    input: Annotated[Path, typer.Argument(help="Input video", exists=True, dir_okay=False)],
     output: Annotated[
         Optional[Path],
-        typer.Option("-o", "--output", help="出力パス（省略時: 入力名_60fps.mp4）"),
+        typer.Option("-o", "--output", help="Output path (default: <input>_60fps.mp4)"),
     ] = None,
     fps: Annotated[
         Optional[str],
-        typer.Option("--fps", help="目標fps（例: 60, 59.94, 60000/1001）"),
+        typer.Option("--fps", help="Target fps (e.g. 60, 59.94, 60000/1001)"),
     ] = None,
     factor: Annotated[
         Optional[str],
-        typer.Option("--factor", help="fps倍率（例: 2, 2.5）"),
+        typer.Option("--factor", help="fps multiplier (e.g. 2, 2.5)"),
     ] = None,
     model: Annotated[
-        str, typer.Option("--model", help=f"補間モデル（{', '.join(models.MODELS)}）")
+        str, typer.Option("--model", help=f"Interpolation model ({', '.join(models.MODELS)})")
     ] = models.DEFAULT_MODEL,
     codec: Annotated[
-        str, typer.Option("--codec", help="出力コーデック: hevc / h264 / prores")
+        str, typer.Option("--codec", help="Output codec: hevc / h264 / prores")
     ] = "hevc",
     quality: Annotated[
-        int, typer.Option("--quality", min=1, max=100, help="品質 1-100（videotoolbox -q:v）")
+        int, typer.Option("--quality", min=1, max=100, help="Quality 1-100 (videotoolbox -q:v)")
     ] = 65,
     scene_threshold: Annotated[
         float,
         typer.Option(
             "--scene-threshold",
-            help="シーンカット検出しきい値（0で無効。カット境界は補間せず複製）",
+            help="Scene-cut detection threshold (0 to disable; cut boundaries are duplicated, not interpolated)",
         ),
     ] = 0.15,
     fp32: Annotated[
-        bool, typer.Option("--fp32", help="fp16推論を無効化する（デフォルト: MPS/CUDAでfp16）")
+        bool, typer.Option("--fp32", help="Disable fp16 inference (default: fp16 on MPS/CUDA)")
     ] = False,
     device: Annotated[
-        str, typer.Option("--device", help="推論デバイス: auto / mps / cpu")
+        str, typer.Option("--device", help="Inference device: auto / mps / cpu")
     ] = "auto",
 ) -> None:
-    """AIフレーム補間でfpsを上げる（例: 30fps -> 60fps）。"""
+    """Increase fps with AI frame interpolation (e.g. 30fps -> 60fps)."""
     from .interpolate import InterpOptions, run_interp
 
     opts = InterpOptions(
@@ -134,61 +134,61 @@ def interp(
     except (FfmpegNotFoundError, RuntimeError, ValueError) as e:
         _fail(e)
     except KeyboardInterrupt:
-        err_console.print("\n[yellow]中断しました。出力ファイルは不完全です。[/yellow]")
+        err_console.print("\n[yellow]Interrupted. The output file is incomplete.[/yellow]")
         raise typer.Exit(code=130)
 
 
 @app.command()
 def run(
-    input: Annotated[Path, typer.Argument(help="入力動画", exists=True, dir_okay=False)],
+    input: Annotated[Path, typer.Argument(help="Input video", exists=True, dir_okay=False)],
     output: Annotated[
         Optional[Path],
-        typer.Option("-o", "--output", help="出力パス（省略時: 入力名_60fps_2x.mp4）"),
+        typer.Option("-o", "--output", help="Output path (default: <input>_60fps_2x.mp4)"),
     ] = None,
     fps: Annotated[
         Optional[str],
-        typer.Option("--fps", help="目標fps（例: 60, 59.94, 60000/1001）"),
+        typer.Option("--fps", help="Target fps (e.g. 60, 59.94, 60000/1001)"),
     ] = None,
     factor: Annotated[
         Optional[str],
-        typer.Option("--factor", help="fps倍率（例: 2, 2.5）"),
+        typer.Option("--factor", help="fps multiplier (e.g. 2, 2.5)"),
     ] = None,
     scale: Annotated[
-        float, typer.Option("--scale", help="出力倍率（1より大きく4以下、小数可）")
+        float, typer.Option("--scale", help="Output scale factor (>1 and <=4, fractional allowed)")
     ] = 2.0,
     interp_model: Annotated[
         str,
-        typer.Option("--interp-model", help=f"補間モデル（{', '.join(models.MODELS)}）"),
+        typer.Option("--interp-model", help=f"Interpolation model ({', '.join(models.MODELS)})"),
     ] = models.DEFAULT_MODEL,
     sr_model: Annotated[
         str,
-        typer.Option("--sr-model", help=f"超解像モデル（{', '.join(models.SR_MODELS)}）"),
+        typer.Option("--sr-model", help=f"Super-resolution model ({', '.join(models.SR_MODELS)})"),
     ] = models.DEFAULT_SR_MODEL,
     codec: Annotated[
-        str, typer.Option("--codec", help="出力コーデック: hevc / h264 / prores")
+        str, typer.Option("--codec", help="Output codec: hevc / h264 / prores")
     ] = "hevc",
     quality: Annotated[
-        int, typer.Option("--quality", min=1, max=100, help="品質 1-100（videotoolbox -q:v）")
+        int, typer.Option("--quality", min=1, max=100, help="Quality 1-100 (videotoolbox -q:v)")
     ] = 65,
     scene_threshold: Annotated[
         float,
         typer.Option(
             "--scene-threshold",
-            help="シーンカット検出しきい値（0で無効。カット境界は補間せず複製）",
+            help="Scene-cut detection threshold (0 to disable; cut boundaries are duplicated, not interpolated)",
         ),
     ] = 0.15,
     tile: Annotated[
         Optional[int],
-        typer.Option("--tile", help="タイルサイズpx（0で分割なし。省略時: モデルに応じ自動）"),
+        typer.Option("--tile", help="Tile size in px (0 for no tiling; auto per model when omitted)"),
     ] = None,
     fp32: Annotated[
-        bool, typer.Option("--fp32", help="fp16推論を無効化する（デフォルト: MPS/CUDAでfp16）")
+        bool, typer.Option("--fp32", help="Disable fp16 inference (default: fp16 on MPS/CUDA)")
     ] = False,
     device: Annotated[
-        str, typer.Option("--device", help="推論デバイス: auto / mps / cpu")
+        str, typer.Option("--device", help="Inference device: auto / mps / cpu")
     ] = "auto",
 ) -> None:
-    """フレーム補間と超解像を1パスで両方行う（例: 30fps 720p -> 60fps 1440p）。"""
+    """Run frame interpolation and super-resolution in one pass (e.g. 30fps 720p -> 60fps 1440p)."""
     from .pipeline import RunOptions, run_pipeline
 
     opts = RunOptions(
@@ -209,42 +209,42 @@ def run(
     except (FfmpegNotFoundError, RuntimeError, ValueError) as e:
         _fail(e)
     except KeyboardInterrupt:
-        err_console.print("\n[yellow]中断しました。出力ファイルは不完全です。[/yellow]")
+        err_console.print("\n[yellow]Interrupted. The output file is incomplete.[/yellow]")
         raise typer.Exit(code=130)
 
 
 @app.command()
 def upscale(
-    input: Annotated[Path, typer.Argument(help="入力動画", exists=True, dir_okay=False)],
+    input: Annotated[Path, typer.Argument(help="Input video", exists=True, dir_okay=False)],
     output: Annotated[
         Optional[Path],
-        typer.Option("-o", "--output", help="出力パス（省略時: 入力名_2x.mp4）"),
+        typer.Option("-o", "--output", help="Output path (default: <input>_2x.mp4)"),
     ] = None,
     scale: Annotated[
-        float, typer.Option("--scale", help="出力倍率（1より大きく4以下、小数可）")
+        float, typer.Option("--scale", help="Output scale factor (>1 and <=4, fractional allowed)")
     ] = 2.0,
     model: Annotated[
         str,
-        typer.Option("--model", help=f"超解像モデル（{', '.join(models.SR_MODELS)}）"),
+        typer.Option("--model", help=f"Super-resolution model ({', '.join(models.SR_MODELS)})"),
     ] = models.DEFAULT_SR_MODEL,
     codec: Annotated[
-        str, typer.Option("--codec", help="出力コーデック: hevc / h264 / prores")
+        str, typer.Option("--codec", help="Output codec: hevc / h264 / prores")
     ] = "hevc",
     quality: Annotated[
-        int, typer.Option("--quality", min=1, max=100, help="品質 1-100（videotoolbox -q:v）")
+        int, typer.Option("--quality", min=1, max=100, help="Quality 1-100 (videotoolbox -q:v)")
     ] = 65,
     tile: Annotated[
         Optional[int],
-        typer.Option("--tile", help="タイルサイズpx（0で分割なし。省略時: モデルに応じ自動）"),
+        typer.Option("--tile", help="Tile size in px (0 for no tiling; auto per model when omitted)"),
     ] = None,
     fp32: Annotated[
-        bool, typer.Option("--fp32", help="fp16推論を無効化する（デフォルト: MPS/CUDAでfp16）")
+        bool, typer.Option("--fp32", help="Disable fp16 inference (default: fp16 on MPS/CUDA)")
     ] = False,
     device: Annotated[
-        str, typer.Option("--device", help="推論デバイス: auto / mps / cpu")
+        str, typer.Option("--device", help="Inference device: auto / mps / cpu")
     ] = "auto",
 ) -> None:
-    """AI超解像で解像度を上げる（例: 720p -> 1440p）。"""
+    """Increase resolution with AI super-resolution (e.g. 720p -> 1440p)."""
     from .upscale import UpscaleOptions, run_upscale
 
     opts = UpscaleOptions(
@@ -261,13 +261,13 @@ def upscale(
     except (FfmpegNotFoundError, RuntimeError, ValueError) as e:
         _fail(e)
     except KeyboardInterrupt:
-        err_console.print("\n[yellow]中断しました。出力ファイルは不完全です。[/yellow]")
+        err_console.print("\n[yellow]Interrupted. The output file is incomplete.[/yellow]")
         raise typer.Exit(code=130)
 
 
 @models_app.command("list")
 def models_list() -> None:
-    """利用可能なモデルとダウンロード状態を表示する。"""
+    """List available models and their download status."""
     table = Table()
     table.add_column("name")
     table.add_column("kind")
@@ -284,9 +284,9 @@ def models_list() -> None:
 
 @models_app.command("download")
 def models_download(
-    name: Annotated[str, typer.Argument(help="モデル名（省略時: デフォルト）")] = models.DEFAULT_MODEL,
+    name: Annotated[str, typer.Argument(help="Model name (default: the default model)")] = models.DEFAULT_MODEL,
 ) -> None:
-    """モデル重みを事前ダウンロードする。"""
+    """Pre-download model weights."""
     try:
         path = models.ensure_model(name)
     except (ValueError, RuntimeError) as e:

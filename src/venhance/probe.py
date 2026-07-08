@@ -18,7 +18,7 @@ def require_tool(name: str) -> str:
     path = shutil.which(name)
     if path is None:
         raise FfmpegNotFoundError(
-            f"{name} が見つかりません。`brew install ffmpeg` でインストールしてください。"
+            f"{name} not found. Install it with `brew install ffmpeg`."
         )
     return path
 
@@ -73,12 +73,12 @@ def probe(path: Path) -> VideoInfo:
     ]
     out = subprocess.run(cmd, capture_output=True, text=True)
     if out.returncode != 0:
-        raise RuntimeError(f"ffprobe に失敗しました: {out.stderr.strip()}")
+        raise RuntimeError(f"ffprobe failed: {out.stderr.strip()}")
     data = json.loads(out.stdout)
 
     vstreams = [s for s in data.get("streams", []) if s.get("codec_type") == "video"]
     if not vstreams:
-        raise ValueError(f"映像ストリームがありません: {path}")
+        raise ValueError(f"no video stream: {path}")
     v = vstreams[0]
     has_audio = any(s.get("codec_type") == "audio" for s in data.get("streams", []))
 
@@ -88,7 +88,7 @@ def probe(path: Path) -> VideoInfo:
     # For VFR sources avg_frame_rate is the sensible CFR target; otherwise they agree.
     fps = avg_rate or r_rate
     if fps is None:
-        raise ValueError(f"フレームレートを判定できません: {path}")
+        raise ValueError(f"cannot determine frame rate: {path}")
 
     duration = None
     for src in (v.get("duration"), data.get("format", {}).get("duration")):

@@ -51,7 +51,7 @@ class InterpStats:
 
 def resolve_target_fps(src_fps: Fraction, opts: InterpOptions) -> Fraction:
     if (opts.fps is None) == (opts.factor is None):
-        raise ValueError("--fps か --factor のどちらか一方を指定してください。")
+        raise ValueError("specify exactly one of --fps or --factor.")
     return opts.fps if opts.fps is not None else src_fps * opts.factor
 
 
@@ -81,7 +81,7 @@ def interp_stream(
     frames = iter(reader)
     prev = next(frames, None)
     if prev is None:
-        raise RuntimeError("フレームをデコードできませんでした。")
+        raise RuntimeError("could not decode any frames.")
     stats.n_src = 1
     prev_t = None  # lazy: tensor conversion only when a pair needs inference
 
@@ -117,16 +117,16 @@ def run_interp(input_path: Path, output_path: Path | None, opts: InterpOptions) 
     dst_fps = resolve_target_fps(src_fps, opts)
     out = output_path or default_output_path(input_path, dst_fps)
     if out.resolve() == input_path.resolve():
-        raise ValueError("出力パスが入力と同じです。")
+        raise ValueError("output path is the same as the input.")
 
     if dst_fps <= src_fps:
         raise ValueError(
-            f"目標fps ({float(dst_fps):g}) が入力fps ({float(src_fps):g}) 以下です。"
+            f"target fps ({float(dst_fps):g}) is not greater than input fps ({float(src_fps):g})."
         )
     if info.is_vfr:
         console.print(
-            "[yellow]入力はVFR（可変フレームレート）です。"
-            f"平均 {float(src_fps):.3f}fps のCFRに変換してから補間します。[/yellow]"
+            "[yellow]Input is VFR (variable frame rate); "
+            f"converting to CFR at its average {float(src_fps):.3f}fps before interpolating.[/yellow]"
         )
 
     console.print(
@@ -167,7 +167,7 @@ def run_interp(input_path: Path, output_path: Path | None, opts: InterpOptions) 
             progress.update(task, completed=stats.n_out)
 
     console.print(
-        f"[green]完了[/green] {out} — 入力 {stats.n_src} フレーム -> 出力 {stats.n_out} フレーム"
-        + (f"（シーンカット検出 {stats.n_cuts} 箇所）" if stats.n_cuts else "")
+        f"[green]done[/green] {out} — {stats.n_src} input frames -> {stats.n_out} output frames"
+        + (f" ({stats.n_cuts} scene cuts detected)" if stats.n_cuts else "")
     )
     return out

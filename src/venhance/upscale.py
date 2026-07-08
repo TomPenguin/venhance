@@ -48,18 +48,18 @@ def default_output_path(input_path: Path, scale: float) -> Path:
 def run_upscale(input_path: Path, output_path: Path | None, opts: UpscaleOptions) -> Path:
     if opts.model not in SR_MODELS:
         raise ValueError(
-            f"未知の超解像モデルです: {opts.model}（利用可能: {', '.join(SR_MODELS)}）"
+            f"unknown super-resolution model: {opts.model} (available: {', '.join(SR_MODELS)})"
         )
     native = SR_MODELS[opts.model].scale
     if not 1.0 < opts.scale <= native:
         raise ValueError(
-            f"--scale は 1 より大きく {native} 以下で指定してください: {opts.scale:g}"
+            f"--scale must be greater than 1 and at most {native}: {opts.scale:g}"
         )
 
     info: VideoInfo = probe(input_path)
     out = output_path or default_output_path(input_path, opts.scale)
     if out.resolve() == input_path.resolve():
-        raise ValueError("出力パスが入力と同じです。")
+        raise ValueError("output path is the same as the input.")
     out_w, out_h = output_dimensions(info, opts.scale)
 
     console.print(
@@ -96,8 +96,8 @@ def run_upscale(input_path: Path, output_path: Path | None, opts: UpscaleOptions
             progress.update(task, completed=n)
 
     if n == 0:
-        raise RuntimeError("フレームをデコードできませんでした。")
+        raise RuntimeError("could not decode any frames.")
     console.print(
-        f"[green]完了[/green] {out} — {n} フレーム, {info.width}x{info.height} -> {out_w}x{out_h}"
+        f"[green]done[/green] {out} — {n} frames, {info.width}x{info.height} -> {out_w}x{out_h}"
     )
     return out

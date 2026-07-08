@@ -123,7 +123,7 @@ def is_downloaded(name: str) -> bool:
 def ensure_model(name: str, quiet: bool = False) -> Path:
     if name not in ALL_MODELS:
         raise ValueError(
-            f"未知のモデルです: {name}（利用可能: {', '.join(ALL_MODELS)}）"
+            f"unknown model: {name} (available: {', '.join(ALL_MODELS)})"
         )
     spec = ALL_MODELS[name]
     dest = model_path(name)
@@ -146,8 +146,8 @@ def ensure_model(name: str, quiet: bool = False) -> Path:
     if digest != spec.sha256:
         tmp.unlink()
         raise RuntimeError(
-            f"{spec.filename} のsha256が一致しません（期待 {spec.sha256}, 実際 {digest}）。"
-            "ダウンロードが破損したか、配布元が変更された可能性があります。"
+            f"sha256 mismatch for {spec.filename} (expected {spec.sha256}, got {digest}). "
+            "The download may be corrupted, or the upstream file may have changed."
         )
     tmp.rename(dest)
     return dest
