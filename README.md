@@ -121,7 +121,7 @@ Measured on an Apple M5, 720p input, fp16 on MPS:
 
 ## Design
 
-See [DESIGN.md](DESIGN.md) (Japanese).
+See [DESIGN.md](DESIGN.md).
 
 ## License
 
